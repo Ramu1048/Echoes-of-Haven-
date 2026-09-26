@@ -30,9 +30,8 @@ from relationships import get_relationship
 from game_state    import get_inventory
 from actions       import execute_action
 
-# Member 3 -- STUB (swap with real dialogue module when Member 3 delivers)
-# To swap: replace these two lines with:  from dialogue import generate_npc_reply, decide_gossip
-from stubs import generate_npc_reply, decide_gossip
+# Member 3 -- REAL dialogue engine (Member 3 has delivered)
+from dialogue_engine import generate_npc_reply, decide_gossip
 
 # ---------------------------------------------------------------------------
 # Gossip routing table (rule-based)
@@ -162,9 +161,11 @@ def decide_and_relay_gossip(
     if mem_type != "secret":
         return None
 
-    # Try LLM-based gossip decision from Member 3 (stub returns None for now)
+    # Try LLM-based gossip decision from Member 3
     try:
         llm_recipient = decide_gossip(npc_id, memory_entry)
+        if isinstance(llm_recipient, dict):
+            llm_recipient = llm_recipient.get("target_npc") or llm_recipient.get("recipient")
     except Exception:
         llm_recipient = None
 

@@ -1,4 +1,4 @@
-﻿"""
+"""
 actions.py -- Echoes of Haven
 Action executor: applies LLM-triggered actions to real game state.
 """
@@ -65,13 +65,17 @@ def execute_action(action: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def _craft_item(action: dict, actor: str, target: str) -> dict:
-    item     = action.get("item", "")
+    item     = str(action.get("item", "")).strip().lower().replace(" ", "_")
     # Allow caller to override material/quantity via action dict
     material = action.get("material")
+    if material:
+        material = str(material).strip().lower()
     qty      = action.get("quantity", 1)
 
     recipe = CRAFT_RECIPES.get(item)
-    if not recipe:
+    if not recipe and material:
+        recipe = {material: 2}
+    elif not recipe:
         return _fail("craft_item", f"No known recipe for '{item}'")
 
     # If caller specified a single material override, use that instead of recipe
@@ -105,7 +109,7 @@ def _craft_item(action: dict, actor: str, target: str) -> dict:
 
 
 def _give_item(action: dict, actor: str, target: str) -> dict:
-    item = action.get("item", "")
+    item = str(action.get("item", "")).strip().lower().replace(" ", "_")
     qty  = action.get("quantity", 1)
 
     actor_inv = get_inventory(actor)
@@ -131,7 +135,7 @@ def _give_item(action: dict, actor: str, target: str) -> dict:
 
 
 def _take_item(action: dict, actor: str, target: str) -> dict:
-    item = action.get("item", "")
+    item = str(action.get("item", "")).strip().lower().replace(" ", "_")
     qty  = action.get("quantity", 1)
 
     target_inv_pre = get_inventory(target)
