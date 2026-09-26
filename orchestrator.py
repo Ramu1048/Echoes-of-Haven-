@@ -12,6 +12,8 @@ To wire in Member 3's real dialogue module, update the Member 3 import block
 below and remove the stubs import for those two functions.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 import logging
 

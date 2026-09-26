@@ -15,12 +15,16 @@ Quick curl test:
          -d '{"npc_id":"mira","player_id":"ramu","message":"I am going into the Forbidden Forest tonight."}'
 """
 
+from __future__ import annotations
+
 import logging
+import pathlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from orchestrator import run_talk_flow, get_full_state
@@ -75,15 +79,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost",
-        "http://localhost:3000",   # common React / Next.js dev port
-        "http://localhost:5173",   # Vite dev port
-        "http://localhost:8501",   # Streamlit
-        "http://127.0.0.1:8501",
-        "null",                    # local HTML file (file:// origin)
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -167,6 +164,19 @@ def _ensure_player_seeded(player_id: str) -> None:
 # Routes
 # ---------------------------------------------------------------------------
 
+_dist_dir = pathlib.Path(__file__).parent / "frontend" / "dist"
+if (_dist_dir / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(_dist_dir / "assets")), name="assets")
+
+@app.get("/", include_in_schema=False)
+def serve_index():
+    """Serves the medieval chat UI React frontend."""
+    index_file = _dist_dir / "index.html"
+    if not index_file.exists():
+        raise HTTPException(status_code=404, detail="Frontend build not found. Run 'npm run build' in frontend/.")
+    return FileResponse(index_file)
+
+
 @app.get("/health", tags=["meta"], summary="Health check")
 def health():
     """Quick sanity check — returns 200 if the server is running."""
@@ -235,3 +245,9 @@ def get_state(player_id: str):
         raise HTTPException(status_code=500, detail=str(exc))
 
     return StateResponse(**state)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+

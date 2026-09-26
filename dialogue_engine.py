@@ -9,6 +9,8 @@ Public API (called by orchestrator.py):
     decide_gossip(npc_id, memory_entry) -> str | None
 """
 
+from __future__ import annotations
+
 import os
 import json
 import logging
@@ -38,8 +40,20 @@ logger = logging.getLogger(__name__)
 _PERSONA_DIR = pathlib.Path(__file__).parent / "personas"
 
 # Models with automatic fallback if one model is rate-limited or busy
-_DIALOGUE_MODELS = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.5-flash"]
-_GOSSIP_MODELS   = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-3.5-flash"]
+_DIALOGUE_MODELS = [
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+]
+_GOSSIP_MODELS = [
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+]
 
 # ---------------------------------------------------------------------------
 # Action tool declarations
@@ -228,12 +242,10 @@ def generate_npc_reply(
             dialogue, action = _parse_response(response, npc_id)
         except Exception as exc:
             logger.error("generate_npc_reply parsing failed for %s: %s", npc_id, exc)
-            dialogue = _fallback_dialogue(npc_id, trust_score)
-            action   = None
+            dialogue, action = _smart_fallback(npc_id, player_message, trust_score)
     else:
-        logger.error("All models failed for %s", npc_id)
-        dialogue = _fallback_dialogue(npc_id, trust_score)
-        action   = None
+        logger.error("All models failed for %s - activating smart in-character fallback", npc_id)
+        dialogue, action = _smart_fallback(npc_id, player_message, trust_score)
 
     return {"npc_id": npc_id, "dialogue": dialogue, "action": action}
 
@@ -353,6 +365,8 @@ def _parse_response(response, npc_id: str) -> tuple[str, dict | None]:
                 }
                 logger.info("Tool call from %s: %s(%s)", npc_id, fc.name, args)
             elif hasattr(part, "text") and part.text:
+                if getattr(part, "thought", False):
+                    continue
                 dialogue_parts.append(part.text.strip())
 
     dialogue = " ".join(dialogue_parts).strip()
@@ -380,6 +394,32 @@ def _action_narration(npc_id: str, action: dict) -> str:
         "move_to":     f"{npc_id.capitalize()} turns and begins walking toward {location}.",
     }
     return narrations.get(act, f"{npc_id.capitalize()} acts.")
+
+
+def _smart_fallback(npc_id: str, player_message: str, trust_score: int) -> tuple[str, dict | None]:
+    """Smart in-character fallback for demo spine resilience during high load or offline."""
+    msg = player_message.lower()
+    if npc_id == "aldric" and any(k in msg for k in ["craft", "forge", "make", "sword", "repair", "iron"]):
+        return (
+            "Aldric examines your request and fires up the forge hearth. 'Aye, the iron looks worthy. Give me a moment at the anvil.'",
+            {"action": "craft_item", "actor": "aldric", "target": "player", "item": "iron_sword", "material": "iron"}
+        )
+    if npc_id == "mira" and any(k in msg for k in ["torch", "forest", "dark", "candle", "light"]):
+        return (
+            "Mira glances around the tavern, then reaches beneath the oak counter. 'If you're truly headed out there, take this torch. The shadows in Haven have teeth.'",
+            {"action": "give_item", "actor": "mira", "target": "player", "item": "torch", "quantity": 1}
+        )
+    if npc_id == "rowan" and any(k in msg for k in ["quest", "help", "forest", "protect", "village", "patrol"]):
+        return (
+            "Captain Rowan places a gauntleted hand on his hilt. 'Word reached me that you're heading toward the forest passage. Haven needs watchful eyes. Take this post.'",
+            {"action": "start_quest", "actor": "rowan", "target": "player", "quest_name": "Forest Watch", "objective": "Investigate the disturbance near the ancient barrier"}
+        )
+    if npc_id == "elian" and any(k in msg for k in ["barrier", "magic", "decay", "ancient", "mystery"]):
+        return (
+            "Elian lowers his arcane focus, his voice dropping to a harsh whisper. 'The barrier isn't merely decaying from age. The resonance lines suggest it was weakened deliberately from the inside.'",
+            None
+        )
+    return _fallback_dialogue(npc_id, trust_score), None
 
 
 def _fallback_dialogue(npc_id: str, trust_score: int) -> str:
