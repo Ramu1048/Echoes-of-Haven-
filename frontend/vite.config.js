@@ -7,9 +7,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/talk': 'http://127.0.0.1:8000',
-      '/state': 'http://127.0.0.1:8000',
-      '/health': 'http://127.0.0.1:8000',
+      '/talk': 'http://127.0.0.1:8080',
+      '/state': 'http://127.0.0.1:8080',
+      '/health': 'http://127.0.0.1:8080',
     }
   }
 })

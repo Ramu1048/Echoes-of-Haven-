@@ -1,7 +1,7 @@
 import React from 'react';
 import { NPCS } from '../data/constants';
 
-export default function Header({ selectedNpc, onSelectNpc, playerId, onPlayerIdChange }) {
+export default function Header({ selectedNpc, onSelectNpc, playerId, onPlayerIdChange, onOpenWelcome }) {
   return (
     <header className="header" id="header">
       <div className="header-title" id="header-title">
@@ -32,18 +32,57 @@ export default function Header({ selectedNpc, onSelectNpc, playerId, onPlayerIdC
         })}
       </nav>
 
-      <div className="player-badge" id="player-badge">
-        <div className="av">⚔</div>
-        <div>
-          <label htmlFor="pid">Player: </label>
-          <input
-            id="pid"
-            type="text"
-            value={playerId}
-            onChange={(e) => onPlayerIdChange(e.target.value)}
-            maxLength={20}
-            autoComplete="off"
-          />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          type="button"
+          onClick={onOpenWelcome}
+          className="intro-story-link"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(154, 61, 255, 0.12)',
+            border: '1px solid rgba(154, 61, 255, 0.35)',
+            borderRadius: '6px',
+            padding: '5px 12px',
+            color: '#c084fc',
+            textDecoration: 'none',
+            fontSize: '0.8rem',
+            fontFamily: 'Cinzel, Georgia, serif',
+            letterSpacing: '0.04em',
+            transition: 'all 0.2s ease',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(154, 61, 255, 0.25)';
+            e.currentTarget.style.borderColor = '#c084fc';
+            e.currentTarget.style.color = '#e9d5ff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(154, 61, 255, 0.12)';
+            e.currentTarget.style.borderColor = 'rgba(154, 61, 255, 0.35)';
+            e.currentTarget.style.color = '#c084fc';
+          }}
+          title="Watch the animated intro story"
+        >
+          <span>📜</span>
+          <span>Intro Story</span>
+        </button>
+
+        <div className="player-badge" id="player-badge">
+          <div className="av">⚔</div>
+          <div>
+            <label htmlFor="pid">Player: </label>
+            <input
+              id="pid"
+              type="text"
+              value={playerId}
+              onChange={(e) => onPlayerIdChange(e.target.value)}
+              maxLength={20}
+              autoComplete="off"
+            />
+          </div>
         </div>
       </div>
     </header>
